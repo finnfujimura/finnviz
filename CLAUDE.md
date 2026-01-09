@@ -18,7 +18,7 @@ This is a drag-and-drop data visualization tool (similar to Tableau) built with 
 
 ### Data Flow
 
-1. **Data loading**: `AppContext.tsx` loads `movies.json` on mount and runs field detection
+1. **Data loading**: `AppContext.tsx` loads `superstore.json` on mount and runs field detection
 2. **Field detection**: `fieldDetection.ts` analyzes data to infer field types (quantitative, nominal, ordinal, temporal)
 3. **Drag-and-drop**: `FieldPill` components are draggable; `EncodingShelf` components are drop targets
 4. **Spec building**: When encodings change, `vegaSpecBuilder.ts` generates a Vega-Lite spec
