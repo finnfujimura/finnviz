@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EncodingChannel, DetectedField, FieldType } from '../../types';
+import type { EncodingChannel, DetectedField, FieldType, AggregateType, TimeUnit } from '../../types';
 import { useApp } from '../../context/AppContext';
 
 const TYPE_COLORS: Record<FieldType, string> = {
@@ -16,18 +16,60 @@ const TYPE_LABELS: Record<FieldType, string> = {
   temporal: 'T',
 };
 
+// Aggregate options by field type
+const AGGREGATE_OPTIONS: Record<FieldType, { value: AggregateType; label: string }[]> = {
+  quantitative: [
+    { value: null, label: 'Raw' },
+    { value: 'sum', label: 'Sum' },
+    { value: 'mean', label: 'Mean' },
+    { value: 'median', label: 'Median' },
+    { value: 'min', label: 'Min' },
+    { value: 'max', label: 'Max' },
+    { value: 'count', label: 'Count' },
+  ],
+  nominal: [
+    { value: null, label: 'Raw' },
+    { value: 'count', label: 'Count' },
+    { value: 'distinct', label: 'Distinct' },
+  ],
+  ordinal: [
+    { value: null, label: 'Raw' },
+    { value: 'count', label: 'Count' },
+    { value: 'distinct', label: 'Distinct' },
+  ],
+  temporal: [
+    { value: null, label: 'Raw' },
+    { value: 'count', label: 'Count' },
+    { value: 'min', label: 'Min' },
+    { value: 'max', label: 'Max' },
+  ],
+};
+
+const TIME_UNIT_OPTIONS: { value: TimeUnit; label: string }[] = [
+  { value: 'year', label: 'Year' },
+  { value: 'quarter', label: 'Quarter' },
+  { value: 'month', label: 'Month' },
+  { value: 'yearmonth', label: 'Year-Month' },
+  { value: 'yearmonthdate', label: 'Year-Month-Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'day', label: 'Day' },
+];
+
 interface EncodingShelfProps {
   channel: EncodingChannel;
   label: string;
 }
 
 export function EncodingShelf({ channel, label }: EncodingShelfProps) {
-  const { state, assignField, removeField } = useApp();
+  const { state, assignField, removeField, setAggregate, setTimeUnit } = useApp();
   const [isOver, setIsOver] = useState(false);
   const [isHoveredRemove, setIsHoveredRemove] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const assignedField = state.encodings[channel];
+  const encodingConfig = state.encodings[channel];
+  const assignedField = encodingConfig?.field;
+  const currentAggregate = encodingConfig?.aggregate ?? null;
+  const currentTimeUnit = encodingConfig?.timeUnit ?? null;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -150,92 +192,162 @@ export function EncodingShelf({ channel, label }: EncodingShelfProps) {
         }}
       >
         {assignedField ? (
-          <div
-            draggable
-            onDragStart={handleFieldDragStart}
-            onDragEnd={handleFieldDragEnd}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '6px 10px',
-              backgroundColor: 'var(--color-bg-secondary)',
-              border: '1px solid var(--color-border)',
-              borderRadius: '6px',
-              animation: 'fadeIn 0.2s ease-out',
-              cursor: isDragging ? 'grabbing' : 'grab',
-              opacity: isDragging ? 0.5 : 1,
-              transition: 'opacity 0.2s ease',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {/* Type badge */}
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: color,
-                  color: 'white',
-                  borderRadius: '4px',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  boxShadow: `0 0 8px ${color}40`,
-                }}
-              >
-                {TYPE_LABELS[assignedField.type]}
-              </span>
-              {/* Field name */}
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: 'var(--color-text-primary)',
-                }}
-              >
-                {assignedField.name}
-              </span>
-            </div>
-
-            {/* Remove button */}
-            <button
-              onClick={handleRemove}
-              onMouseEnter={() => setIsHoveredRemove(true)}
-              onMouseLeave={() => setIsHoveredRemove(false)}
+          <div style={{ width: '100%' }}>
+            <div
+              draggable
+              onDragStart={handleFieldDragStart}
+              onDragEnd={handleFieldDragEnd}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: '22px',
-                height: '22px',
-                padding: 0,
-                backgroundColor: isHoveredRemove
-                  ? 'rgba(239, 68, 68, 0.15)'
-                  : 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: isHoveredRemove ? '#ef4444' : 'var(--color-text-muted)',
-                transition: 'all 0.15s ease',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '6px 10px',
+                backgroundColor: 'var(--color-bg-secondary)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '6px',
+                animation: 'fadeIn 0.2s ease-out',
+                cursor: isDragging ? 'grabbing' : 'grab',
+                opacity: isDragging ? 0.5 : 1,
+                transition: 'opacity 0.2s ease',
               }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* Type badge */}
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '20px',
+                    height: '20px',
+                    backgroundColor: color,
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    boxShadow: `0 0 8px ${color}40`,
+                  }}
+                >
+                  {TYPE_LABELS[assignedField.type]}
+                </span>
+                {/* Field name */}
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
+                  {assignedField.name}
+                </span>
+              </div>
+
+              {/* Remove button */}
+              <button
+                onClick={handleRemove}
+                onMouseEnter={() => setIsHoveredRemove(true)}
+                onMouseLeave={() => setIsHoveredRemove(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '22px',
+                  height: '22px',
+                  padding: 0,
+                  backgroundColor: isHoveredRemove
+                    ? 'rgba(239, 68, 68, 0.15)'
+                    : 'transparent',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: isHoveredRemove ? '#ef4444' : 'var(--color-text-muted)',
+                  transition: 'all 0.15s ease',
+                }}
               >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Aggregate dropdown */}
+            <select
+              value={currentAggregate ?? ''}
+              onChange={(e) => {
+                const value = e.target.value === '' ? null : e.target.value as AggregateType;
+                setAggregate(channel, value);
+              }}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                padding: '4px 8px',
+                fontSize: '11px',
+                fontWeight: 500,
+                color: 'var(--color-text-secondary)',
+                backgroundColor: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                outline: 'none',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+                paddingRight: '28px',
+              }}
+            >
+              {AGGREGATE_OPTIONS[assignedField.type].map((option) => (
+                <option key={option.label} value={option.value ?? ''}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Time unit dropdown for temporal fields */}
+            {assignedField.type === 'temporal' && (
+              <select
+                value={currentTimeUnit ?? 'year'}
+                onChange={(e) => {
+                  const value = e.target.value as TimeUnit;
+                  setTimeUnit(channel, value);
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: '6px',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: 'var(--color-text-secondary)',
+                  backgroundColor: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 8px center',
+                  paddingRight: '28px',
+                }}
+              >
+                {TIME_UNIT_OPTIONS.map((option) => (
+                  <option key={option.label} value={option.value ?? ''}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         ) : (
           <div

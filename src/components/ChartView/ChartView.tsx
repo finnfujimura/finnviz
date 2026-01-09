@@ -1,14 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import embed, { type Result } from 'vega-embed';
 import { useApp } from '../../context/AppContext';
-import { buildVegaSpec } from '../../utils/vegaSpecBuilder';
+import { buildVegaSpec, generateChartTitle } from '../../utils/vegaSpecBuilder';
 
 export function ChartView() {
-  const { state } = useApp();
+  const { state, setChartTitle } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const vegaResultRef = useRef<Result | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
 
-  const spec = buildVegaSpec(state.encodings, state.data);
+  const autoTitle = generateChartTitle(state.encodings);
+  const displayTitle = state.chartTitle ?? autoTitle;
+  const spec = buildVegaSpec(state.encodings, state.data, state.markType, state.chartTitle);
 
   useEffect(() => {
     // Cleanup previous Vega view
@@ -362,23 +366,173 @@ export function ChartView() {
         </div>
       ) : (
         <div
-          key="chart-container"
-          ref={containerRef}
+          key="chart-wrapper"
           style={{
             flex: 1,
-            backgroundColor: 'var(--color-bg-secondary)',
-            borderRadius: '16px',
-            padding: '24px',
-            border: '1px solid var(--color-border)',
+            display: 'flex',
+            flexDirection: 'column',
             position: 'relative',
             zIndex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             animation: 'fadeIn 0.4s ease-out',
-            overflow: 'hidden',
           }}
-        />
+        >
+          {/* Editable Chart Title */}
+          <div
+            style={{
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            {isEditingTitle ? (
+              <input
+                type="text"
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value)}
+                onBlur={() => {
+                  setIsEditingTitle(false);
+                  if (titleInput.trim()) {
+                    setChartTitle(titleInput.trim());
+                  } else {
+                    setChartTitle(null);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsEditingTitle(false);
+                    if (titleInput.trim()) {
+                      setChartTitle(titleInput.trim());
+                    } else {
+                      setChartTitle(null);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setIsEditingTitle(false);
+                    setTitleInput(displayTitle);
+                  }
+                }}
+                autoFocus
+                placeholder={autoTitle || 'Enter chart title...'}
+                style={{
+                  flex: 1,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  fontStyle: 'italic',
+                  color: 'var(--color-text-primary)',
+                  backgroundColor: 'var(--color-bg-tertiary)',
+                  border: '1px solid var(--color-accent)',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  outline: 'none',
+                }}
+              />
+            ) : (
+              <div
+                onClick={() => {
+                  setTitleInput(displayTitle);
+                  setIsEditingTitle(true);
+                }}
+                style={{
+                  flex: 1,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  fontStyle: 'italic',
+                  color: displayTitle ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span>{displayTitle || 'Click to add title...'}</span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ opacity: 0.5 }}
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </div>
+            )}
+            {state.chartTitle && (
+              <button
+                onClick={() => setChartTitle(null)}
+                title="Reset to auto-generated title"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-accent)';
+                  e.currentTarget.style.color = 'var(--color-accent)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-border)';
+                  e.currentTarget.style.color = 'var(--color-text-muted)';
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M3 21v-5h5" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Chart container */}
+          <div
+            ref={containerRef}
+            style={{
+              flex: 1,
+              backgroundColor: 'var(--color-bg-secondary)',
+              borderRadius: '16px',
+              padding: '24px',
+              border: '1px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          />
+        </div>
       )}
 
       {/* Footer gradient line */}

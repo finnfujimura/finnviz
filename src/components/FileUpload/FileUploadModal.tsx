@@ -466,10 +466,11 @@ export function FileUploadModal({ isOpen, onClose }: FileUploadModalProps) {
             </div>
           </div>
         ) : (
-          <label
+          <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
             style={{
               display: 'block',
               padding: '48px 24px',
@@ -563,7 +564,7 @@ export function FileUploadModal({ isOpen, onClose }: FileUploadModalProps) {
                 </span>
               ))}
             </div>
-          </label>
+          </div>
         )}
       </div>
 

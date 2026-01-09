@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import type { AppState, AppAction, DetectedField, EncodingChannel, FieldType } from '../types';
+import type { AppState, AppAction, DetectedField, EncodingChannel, FieldType, AggregateType, TimeUnit, MarkType } from '../types';
 import { detectAllFields } from '../utils/fieldDetection';
 import carsData from '../../cars.json';
 
@@ -7,6 +7,8 @@ const initialState: AppState = {
   data: [],
   fields: [],
   encodings: {},
+  markType: 'auto',
+  chartTitle: null,
   isLoading: true,
   error: null,
 };
@@ -20,15 +22,44 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'ASSIGN_FIELD':
       return {
         ...state,
-        encodings: { ...state.encodings, [action.channel]: action.field },
+        encodings: {
+          ...state.encodings,
+          [action.channel]: {
+            field: action.field,
+            aggregate: null,
+            timeUnit: action.field.type === 'temporal' ? 'year' : null
+          }
+        },
       };
     case 'REMOVE_FIELD': {
       const newEncodings = { ...state.encodings };
       delete newEncodings[action.channel];
       return { ...state, encodings: newEncodings };
     }
+    case 'SET_AGGREGATE': {
+      const existingConfig = state.encodings[action.channel];
+      if (!existingConfig) return state;
+      return {
+        ...state,
+        encodings: {
+          ...state.encodings,
+          [action.channel]: { ...existingConfig, aggregate: action.aggregate },
+        },
+      };
+    }
+    case 'SET_TIME_UNIT': {
+      const existingConfig = state.encodings[action.channel];
+      if (!existingConfig) return state;
+      return {
+        ...state,
+        encodings: {
+          ...state.encodings,
+          [action.channel]: { ...existingConfig, timeUnit: action.timeUnit },
+        },
+      };
+    }
     case 'CLEAR_ALL':
-      return { ...state, encodings: {} };
+      return { ...state, encodings: {}, chartTitle: null };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
@@ -44,10 +75,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
       });
       // Also update any encodings that use this field
       const newEncodings = { ...state.encodings };
-      for (const [channel, field] of Object.entries(newEncodings)) {
-        if (field && field.name === action.fieldName) {
-          const newType: FieldType = field.type === 'ordinal' ? 'nominal' : 'ordinal';
-          newEncodings[channel as EncodingChannel] = { ...field, type: newType };
+      for (const [channel, config] of Object.entries(newEncodings)) {
+        if (config && config.field.name === action.fieldName) {
+          const newType: FieldType = config.field.type === 'ordinal' ? 'nominal' : 'ordinal';
+          newEncodings[channel as EncodingChannel] = {
+            ...config,
+            field: { ...config.field, type: newType }
+          };
         }
       }
       return { ...state, fields: newFields, encodings: newEncodings };
@@ -58,9 +92,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
         data: [],
         fields: [],
         encodings: {},
+        markType: 'auto',
+        chartTitle: null,
         isLoading: true,
         error: null,
       };
+    case 'SET_MARK_TYPE':
+      return { ...state, markType: action.markType };
+    case 'SET_CHART_TITLE':
+      return { ...state, chartTitle: action.title };
     default:
       return state;
   }
@@ -70,6 +110,10 @@ interface AppContextType {
   state: AppState;
   assignField: (channel: EncodingChannel, field: DetectedField) => void;
   removeField: (channel: EncodingChannel) => void;
+  setAggregate: (channel: EncodingChannel, aggregate: AggregateType) => void;
+  setTimeUnit: (channel: EncodingChannel, timeUnit: TimeUnit) => void;
+  setMarkType: (markType: MarkType) => void;
+  setChartTitle: (title: string | null) => void;
   clearAll: () => void;
   toggleFieldType: (fieldName: string) => void;
   loadData: (data: Record<string, unknown>[]) => void;
@@ -100,6 +144,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'REMOVE_FIELD', channel });
   };
 
+  const setAggregate = (channel: EncodingChannel, aggregate: AggregateType) => {
+    dispatch({ type: 'SET_AGGREGATE', channel, aggregate });
+  };
+
+  const setTimeUnit = (channel: EncodingChannel, timeUnit: TimeUnit) => {
+    dispatch({ type: 'SET_TIME_UNIT', channel, timeUnit });
+  };
+
+  const setMarkType = (markType: MarkType) => {
+    dispatch({ type: 'SET_MARK_TYPE', markType });
+  };
+
+  const setChartTitle = (title: string | null) => {
+    dispatch({ type: 'SET_CHART_TITLE', title });
+  };
+
   const clearAll = () => {
     dispatch({ type: 'CLEAR_ALL' });
   };
@@ -121,7 +181,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ state, assignField, removeField, clearAll, toggleFieldType, loadData }}>
+    <AppContext.Provider value={{ state, assignField, removeField, setAggregate, setTimeUnit, setMarkType, setChartTitle, clearAll, toggleFieldType, loadData }}>
       {children}
     </AppContext.Provider>
   );

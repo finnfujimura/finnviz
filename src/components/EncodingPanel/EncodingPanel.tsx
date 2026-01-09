@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { EncodingShelf } from './EncodingShelf';
+import type { MarkType } from '../../types';
+
+const MARK_TYPE_OPTIONS: { value: MarkType; label: string; icon: string }[] = [
+  { value: 'auto', label: 'Auto', icon: '✨' },
+  { value: 'bar', label: 'Bar', icon: '▮' },
+  { value: 'line', label: 'Line', icon: '⟋' },
+  { value: 'point', label: 'Point', icon: '●' },
+  { value: 'area', label: 'Area', icon: '▲' },
+  { value: 'circle', label: 'Circle', icon: '◯' },
+  { value: 'tick', label: 'Tick', icon: '|' },
+  { value: 'rect', label: 'Rect', icon: '▢' },
+];
 
 interface EncodingSection {
   title: string;
@@ -54,7 +66,7 @@ const SECTIONS: EncodingSection[] = [
 ];
 
 export function EncodingPanel() {
-  const { clearAll, state } = useApp();
+  const { clearAll, state, setMarkType } = useApp();
   const [hoveredClear, setHoveredClear] = useState(false);
 
   const hasEncodings = Object.keys(state.encodings).length > 0;
@@ -142,6 +154,82 @@ export function EncodingPanel() {
             Clear
           </button>
         )}
+      </div>
+
+      {/* Chart Type Selector */}
+      <div
+        style={{
+          marginBottom: '24px',
+          animation: 'fadeIn 0.4s ease-out',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '12px',
+            paddingBottom: '8px',
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          <span style={{ color: 'var(--color-accent)', opacity: 0.8 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18" />
+              <path d="M9 21V9" />
+            </svg>
+          </span>
+          <h3
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              color: 'var(--color-text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              margin: 0,
+            }}
+          >
+            Chart Type
+          </h3>
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '6px',
+          }}
+        >
+          {MARK_TYPE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setMarkType(option.value)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                padding: '8px 4px',
+                backgroundColor: state.markType === option.value
+                  ? 'var(--color-accent-glow)'
+                  : 'var(--color-bg-tertiary)',
+                border: `1px solid ${state.markType === option.value ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                color: state.markType === option.value
+                  ? 'var(--color-accent)'
+                  : 'var(--color-text-secondary)',
+              }}
+            >
+              <span style={{ fontSize: '14px', lineHeight: 1 }}>{option.icon}</span>
+              <span style={{ fontSize: '9px', fontWeight: 500, letterSpacing: '0.02em' }}>
+                {option.label}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Sections */}
