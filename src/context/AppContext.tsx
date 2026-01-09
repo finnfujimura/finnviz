@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import type { AppState, AppAction, DetectedField, EncodingChannel, FieldType, AggregateType, TimeUnit, MarkType } from '../types';
 import { detectAllFields } from '../utils/fieldDetection';
-import carsData from '../../cars.json';
+import carsData from '../../movies.json';
 
 const initialState: AppState = {
   data: [],
