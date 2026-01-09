@@ -142,7 +142,7 @@ function AppContent() {
               letterSpacing: '-0.02em',
             }}
           >
-            DataViz <span style={{ fontStyle: 'italic', color: 'var(--color-accent)' }}>Studio</span>
+            FinnViz <span style={{ fontStyle: 'italic', color: 'var(--color-accent)' }}>Studio</span>
           </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
