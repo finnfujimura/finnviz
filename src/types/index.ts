@@ -8,6 +8,8 @@ export type MarkType = 'auto' | 'bar' | 'line' | 'point' | 'area' | 'rect' | 'ci
 
 export type SortOrder = 'ascending' | 'descending' | '-x' | '-y' | 'x' | 'y' | null;
 
+export type ViewMode = 'chart' | 'table';
+
 // Filter types
 export type FilterType = 'range' | 'selection' | 'date-range';
 
@@ -63,6 +65,22 @@ export interface AppState {
   chartTitle: string | null; // null means auto-generate
   isLoading: boolean;
   error: string | null;
+  projects: ProjectMetadata[];
+  currentProjectId: string | null;
+  viewMode: ViewMode;
+}
+
+export interface ProjectMetadata {
+  id: string;
+  name: string;
+  updatedAt: number;
+}
+
+export interface SavedProject extends ProjectMetadata {
+  encodings: EncodingState;
+  filters: FilterConfig[];
+  markType: MarkType;
+  chartTitle: string | null;
 }
 
 export type AppAction =
@@ -83,7 +101,12 @@ export type AppAction =
   | { type: 'ADD_FILTER'; filter: FilterConfig }
   | { type: 'UPDATE_FILTER'; fieldName: string; value: FilterValue }
   | { type: 'REMOVE_FILTER'; fieldName: string }
-  | { type: 'CLEAR_FILTERS' };
+  | { type: 'CLEAR_FILTERS' }
+  | { type: 'SAVE_PROJECT'; name: string; id: string; projects: ProjectMetadata[] }
+  | { type: 'LOAD_PROJECT'; project: SavedProject }
+  | { type: 'DELETE_PROJECT'; id: string }
+  | { type: 'SET_PROJECTS'; projects: ProjectMetadata[] }
+  | { type: 'SET_VIEW_MODE'; mode: ViewMode };
 
 // File upload types
 export interface FileUploadResult {

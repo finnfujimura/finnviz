@@ -66,11 +66,69 @@ const SECTIONS: EncodingSection[] = [
   },
 ];
 
-export function EncodingPanel() {
+interface EncodingPanelProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export function EncodingPanel({ isCollapsed, onToggle }: EncodingPanelProps) {
   const { clearAll, state, setMarkType } = useApp();
   const [hoveredClear, setHoveredClear] = useState(false);
 
   const hasEncodings = Object.keys(state.encodings).length > 0;
+
+  if (isCollapsed) {
+    return (
+      <aside
+        style={{
+          width: '48px',
+          backgroundColor: 'var(--color-bg-secondary)',
+          borderRight: '1px solid var(--color-border)',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '20px 0',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+        }}
+        onClick={onToggle}
+        title="Expand Encoding Channels"
+      >
+        <button
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-text-muted)',
+            cursor: 'pointer',
+            padding: '8px',
+            marginBottom: '20px',
+            transition: 'color 0.2s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
+          onMouseOut={(e) => (e.currentTarget.style.color = 'var(--color-text-muted)')}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="13 17 18 12 13 7" />
+            <polyline points="6 17 11 12 6 7" />
+          </svg>
+        </button>
+        <div
+          style={{
+            writingMode: 'vertical-rl',
+            textTransform: 'uppercase',
+            letterSpacing: '0.2em',
+            fontSize: '11px',
+            fontWeight: 600,
+            color: 'var(--color-text-muted)',
+            userSelect: 'none',
+          }}
+        >
+          Encoding Channels
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside
@@ -82,8 +140,40 @@ export function EncodingPanel() {
         overflow: 'auto',
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
       }}
     >
+      {/* Collapse button */}
+      <button
+        onClick={onToggle}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '12px',
+          background: 'none',
+          border: 'none',
+          color: 'var(--color-text-muted)',
+          cursor: 'pointer',
+          padding: '4px',
+          borderRadius: '4px',
+          transition: 'all 0.2s ease',
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.color = 'var(--color-accent)';
+          e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.color = 'var(--color-text-muted)';
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }}
+        title="Collapse"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="11 17 6 12 11 7" />
+          <polyline points="18 17 13 12 18 7" />
+        </svg>
+      </button>
+
       {/* Header */}
       <div
         style={{
@@ -91,6 +181,7 @@ export function EncodingPanel() {
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           marginBottom: '24px',
+          paddingRight: '24px',
         }}
       >
         <div>

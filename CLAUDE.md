@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Live Demo**: https://finnfujimura.github.io/finnviz-studio/
+
 ## Commands
 
 ```bash
@@ -41,7 +43,7 @@ All app state lives in `AppContext.tsx` using `useReducer`. Key state:
 Key actions:
 - `ASSIGN_FIELD`, `REMOVE_FIELD`: Add/remove field from encoding channel
 - `SET_AGGREGATE`, `SET_TIME_UNIT`, `SET_SORT`: Modify encoding properties
-- `ADD_FILTER`, `UPDATE_FILTER`, `REMOVE_FILTER`: Manage data filters
+- `ADD_FILTER`, `UPDATE_FILTER`, `REMOVE_FILTER`, `CLEAR_FILTERS`: Manage data filters
 - `SET_MARK_TYPE`, `SET_CHART_TITLE`: Override defaults
 - `TOGGLE_FIELD_TYPE`: Switch between ordinal/nominal
 - `RESET_FOR_NEW_DATA`: Clear state when loading new dataset
@@ -94,7 +96,9 @@ App.tsx
 
 The app supports uploading custom datasets:
 - CSV files (parsed via PapaParse)
+- JSON files (must be an array of objects)
 - Excel files (.xlsx, .xls) via the xlsx library
+- `fileParsers.ts` handles all parsing logic with 10MB file size limit and 100K row limit
 - Parsed data is passed to `loadData()` which resets state and re-runs field detection
 
 ### Styling

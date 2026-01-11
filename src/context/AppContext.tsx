@@ -1,6 +1,7 @@
-import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import type { AppState, AppAction, DetectedField, EncodingChannel, FieldType, AggregateType, TimeUnit, MarkType, SortOrder, FilterConfig, FilterValue, FilterType, RangeFilterValue, SelectionFilterValue, DateRangeFilterValue } from '../types';
+import { createContext, useContext, useReducer, useEffect, ReactNode, useRef } from 'react';
+import type { AppState, AppAction, DetectedField, EncodingChannel, FieldType, AggregateType, TimeUnit, MarkType, SortOrder, FilterConfig, FilterValue, FilterType, RangeFilterValue, SelectionFilterValue, DateRangeFilterValue, SavedProject, ViewMode } from '../types';
 import { detectAllFields } from '../utils/fieldDetection';
+import { persistence } from '../utils/persistence';
 import carsData from '../../superstore.json';
 
 const initialState: AppState = {
@@ -12,6 +13,9 @@ const initialState: AppState = {
   chartTitle: null,
   isLoading: true,
   error: null,
+  projects: [],
+  currentProjectId: null,
+  viewMode: 'chart',
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -61,7 +65,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
     case 'CLEAR_ALL':
-      return { ...state, encodings: {}, filters: [], chartTitle: null };
+      return { ...state, encodings: {}, filters: [], chartTitle: null, currentProjectId: null };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
@@ -138,6 +142,29 @@ function appReducer(state: AppState, action: AppAction): AppState {
     }
     case 'CLEAR_FILTERS':
       return { ...state, filters: [] };
+    case 'SAVE_PROJECT': {
+      // This is now just a state update after persistence is handled in the helper
+      return { ...state, projects: action.projects, currentProjectId: action.id };
+    }
+    case 'LOAD_PROJECT':
+      return {
+        ...state,
+        encodings: action.project.encodings,
+        filters: action.project.filters,
+        markType: action.project.markType,
+        chartTitle: action.project.chartTitle,
+        currentProjectId: action.project.id,
+      };
+    case 'DELETE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.filter((p) => p.id !== action.id),
+        currentProjectId: state.currentProjectId === action.id ? null : state.currentProjectId,
+      };
+    case 'SET_PROJECTS':
+      return { ...state, projects: action.projects };
+    case 'SET_VIEW_MODE':
+      return { ...state, viewMode: action.mode };
     default:
       return state;
   }
@@ -159,6 +186,10 @@ interface AppContextType {
   updateFilter: (fieldName: string, value: FilterValue) => void;
   removeFilter: (fieldName: string) => void;
   clearFilters: () => void;
+  saveProject: (name: string) => void;
+  loadProject: (id: string) => void;
+  deleteProject: (id: string) => void;
+  setViewMode: (mode: ViewMode) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -293,8 +324,97 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLEAR_FILTERS' });
   };
 
+  const saveProject = (name: string) => {
+    const id = state.currentProjectId && state.currentProjectId !== 'temp-session' 
+      ? state.currentProjectId 
+      : crypto.randomUUID();
+    
+    const project: SavedProject = {
+      id,
+      name,
+      updatedAt: Date.now(),
+      encodings: state.encodings,
+      filters: state.filters,
+      markType: state.markType,
+      chartTitle: state.chartTitle,
+    };
+
+    persistence.saveProject(project);
+    const metadata = persistence.getProjectsMetadata();
+    
+    dispatch({ type: 'SAVE_PROJECT', name, id, projects: metadata });
+  };
+
+  const loadProject = (id: string) => {
+    const project = persistence.getProject(id);
+    if (project) {
+      dispatch({ type: 'LOAD_PROJECT', project });
+    }
+  };
+
+  const deleteProject = (id: string) => {
+    persistence.deleteProject(id);
+    dispatch({ type: 'DELETE_PROJECT', id });
+  };
+
+  // Initial load of projects and session
+  useEffect(() => {
+    const metadata = persistence.getProjectsMetadata();
+    dispatch({ type: 'SET_PROJECTS', projects: metadata });
+
+    const lastSession = persistence.getLastSession();
+    if (lastSession) {
+      dispatch({
+        type: 'LOAD_PROJECT',
+        project: {
+          ...lastSession,
+          name: 'Restored Session',
+          updatedAt: Date.now(),
+        } as SavedProject,
+      });
+    }
+  }, []);
+
+  // Auto-save last session
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    persistence.saveLastSession({
+      id: state.currentProjectId || 'temp-session',
+      encodings: state.encodings,
+      filters: state.filters,
+      markType: state.markType,
+      chartTitle: state.chartTitle,
+    });
+  }, [state.encodings, state.filters, state.markType, state.chartTitle]);
+
   return (
-    <AppContext.Provider value={{ state, assignField, removeField, setAggregate, setTimeUnit, setSort, setMarkType, setChartTitle, clearAll, toggleFieldType, loadData, addFilter, updateFilter, removeFilter, clearFilters }}>
+    <AppContext.Provider
+      value={{
+        state,
+        assignField,
+        removeField,
+        setAggregate,
+        setTimeUnit,
+        setSort,
+        setMarkType,
+        setChartTitle,
+        clearAll,
+        toggleFieldType,
+        loadData,
+        addFilter,
+        updateFilter,
+        removeFilter,
+        clearFilters,
+        saveProject,
+        loadProject,
+        deleteProject,
+        setViewMode: (mode: ViewMode) => dispatch({ type: 'SET_VIEW_MODE', mode }),
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

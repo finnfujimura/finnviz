@@ -4,10 +4,13 @@ import { FieldList } from './components/FieldList/FieldList';
 import { EncodingPanel } from './components/EncodingPanel/EncodingPanel';
 import { ChartView } from './components/ChartView/ChartView';
 import { FileUploadModal } from './components/FileUpload/FileUploadModal';
+import { ProjectManager } from './components/ProjectManager/ProjectManager';
 
 function AppContent() {
   const { state } = useApp();
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isFieldListCollapsed, setIsFieldListCollapsed] = useState(false);
+  const [isEncodingPanelCollapsed, setIsEncodingPanelCollapsed] = useState(false);
 
   if (state.isLoading) {
     return (
@@ -96,11 +99,12 @@ function AppContent() {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '240px 280px 1fr',
+        gridTemplateColumns: `${isFieldListCollapsed ? '48px' : '240px'} ${isEncodingPanelCollapsed ? '48px' : '280px'} 1fr`,
         gridTemplateRows: '64px 1fr',
         height: '100vh',
         overflow: 'hidden',
         background: 'var(--color-bg-primary)',
+        transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       {/* Header */}
@@ -146,7 +150,8 @@ function AppContent() {
             FinnViz <span style={{ fontStyle: 'italic', color: 'var(--color-accent)' }}>Studio</span>
           </h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <ProjectManager />
           <button
             onClick={() => setShowUploadModal(true)}
             style={{
@@ -214,8 +219,14 @@ function AppContent() {
       </header>
 
       {/* Sidebars */}
-      <FieldList />
-      <EncodingPanel />
+      <FieldList
+        isCollapsed={isFieldListCollapsed}
+        onToggle={() => setIsFieldListCollapsed(!isFieldListCollapsed)}
+      />
+      <EncodingPanel
+        isCollapsed={isEncodingPanelCollapsed}
+        onToggle={() => setIsEncodingPanelCollapsed(!isEncodingPanelCollapsed)}
+      />
       <ChartView />
 
       {/* Noise overlay for texture */}
