@@ -39,4 +39,31 @@ describe('fieldDetection', () => {
       expect(detectFieldType(values)).not.toBe('temporal');
     });
   });
+
+  describe('detectFieldType - nominal (IDs and categories)', () => {
+    it('should detect string categories as nominal', () => {
+      const values = ['Red', 'Blue', 'Green', 'Yellow'];
+      expect(detectFieldType(values)).toBe('nominal');
+    });
+
+    it('should detect numeric IDs as nominal when sequential', () => {
+      const values = [1001, 1002, 1003, 1004, 1005];
+      expect(detectFieldType(values)).toBe('nominal');
+    });
+
+    it('should detect large integers as nominal (likely IDs)', () => {
+      const values = [123456789, 123456790, 123456791];
+      expect(detectFieldType(values)).toBe('nominal');
+    });
+
+    it('should handle mixed string IDs', () => {
+      const values = ['CUST-001', 'CUST-002', 'CUST-003'];
+      expect(detectFieldType(values)).toBe('nominal');
+    });
+
+    it('should detect high-cardinality unique values as nominal', () => {
+      const values = Array.from({ length: 100 }, (_, i) => `ID-${i}`);
+      expect(detectFieldType(values)).toBe('nominal');
+    });
+  });
 });
