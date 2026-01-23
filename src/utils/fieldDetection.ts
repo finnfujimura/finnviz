@@ -2,6 +2,18 @@ import type { FieldType, DetectedField } from '../types';
 
 const CATEGORICAL_THRESHOLD = 20;
 
+// Common ordinal string patterns (case-insensitive)
+const ORDINAL_STRING_PATTERNS = [
+  // Size categories
+  /^(x{0,3}[sml]|small|medium|large|x+large)$/i,
+  // Priority levels
+  /^(low|medium|high|critical|urgent)$/i,
+  // Quality levels
+  /^(poor|fair|good|excellent|outstanding)$/i,
+  // Agreement scales
+  /^(strongly\s*disagree|disagree|neutral|agree|strongly\s*agree)$/i,
+];
+
 const DATE_PATTERNS = [
   /^\d{4}-\d{2}-\d{2}$/,                    // YYYY-MM-DD
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,  // ISO 8601 datetime
@@ -62,6 +74,24 @@ function looksLikeId(values: unknown[]): boolean {
   return false;
 }
 
+function isOrdinalString(values: unknown[]): boolean {
+  const stringValues = values.filter((v): v is string => typeof v === 'string');
+  if (stringValues.length !== values.length) return false;
+
+  const uniqueValues = new Set(stringValues);
+
+  // Need at least 2 unique ordinal values to be meaningful
+  if (uniqueValues.size < 2) return false;
+
+  // Check if values match common ordinal patterns
+  const matchingValues = stringValues.filter((v) =>
+    ORDINAL_STRING_PATTERNS.some((pattern) => pattern.test(v))
+  );
+
+  // If most values match ordinal patterns, classify as ordinal
+  return matchingValues.length >= stringValues.length * 0.5;
+}
+
 export function detectFieldType(values: unknown[], fieldName?: string): FieldType {
   const nonNullValues = values.filter((v) => v !== null && v !== undefined && v !== '');
 
@@ -74,6 +104,11 @@ export function detectFieldType(values: unknown[], fieldName?: string): FieldTyp
   // Check for temporal fields first
   if (isTemporalField(sample)) {
     return 'temporal';
+  }
+
+  // Check for ordinal strings before treating as nominal
+  if (isOrdinalString(sample)) {
+    return 'ordinal';
   }
 
   const numericValues = sample.filter(
@@ -92,10 +127,40 @@ export function detectFieldType(values: unknown[], fieldName?: string): FieldTyp
       return 'nominal';
     }
 
-    // Distinguish ordinal from quantitative
-    if (uniqueCount <= CATEGORICAL_THRESHOLD) {
+    // Convert string numbers to actual numbers for analysis
+    const actualNumbers = numericValues.map((v) => typeof v === 'number' ? v : Number(v));
+
+    // Check if any values have decimals (strong signal for quantitative)
+    const hasDecimals = actualNumbers.some((v) => !Number.isInteger(v));
+
+    // Calculate value range
+    const min = Math.min(...actualNumbers);
+    const max = Math.max(...actualNumbers);
+    const range = max - min;
+
+    // Heuristics to distinguish ordinal from quantitative:
+    // 1. If has decimal values → quantitative
+    // 2. If range is large (>100) → quantitative
+    // 3. If only 1 unique value → quantitative (default for numbers)
+    // 4. If few unique values AND small range → ordinal
+
+    if (hasDecimals) {
+      return 'quantitative';
+    }
+
+    if (range > 100) {
+      return 'quantitative';
+    }
+
+    if (uniqueCount === 1) {
+      return 'quantitative';
+    }
+
+    // Small number of unique values with small range → ordinal
+    if (uniqueCount <= CATEGORICAL_THRESHOLD && range <= CATEGORICAL_THRESHOLD) {
       return 'ordinal';
     }
+
     return 'quantitative';
   }
 

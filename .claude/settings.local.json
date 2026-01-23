@@ -16,7 +16,17 @@
       "mcp__plugin_playwright_playwright__browser_select_option",
       "Bash(npx tsc:*)",
       "mcp__plugin_playwright_playwright__browser_install",
-      "mcp__plugin_playwright_playwright__browser_hover"
+      "mcp__plugin_playwright_playwright__browser_hover",
+      "Skill(superpowers:brainstorming)",
+      "WebFetch(domain:vega.github.io)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(npm test)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(git reset:*)"
     ]
   }
 }
