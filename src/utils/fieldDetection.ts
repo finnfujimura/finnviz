@@ -3,18 +3,22 @@ import type { FieldType, DetectedField } from '../types';
 const CATEGORICAL_THRESHOLD = 20;
 
 const DATE_PATTERNS = [
-  /^\d{4}-\d{2}-\d{2}$/,
-  /^\d{4}-\d{2}-\d{2}T/,
-  /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,
+  /^\d{4}-\d{2}-\d{2}$/,                    // YYYY-MM-DD
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,  // ISO 8601 datetime
+  /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,            // MM/DD/YYYY or M/D/YY
+  /^\d{1,2}-\d{1,2}-\d{2,4}$/,              // MM-DD-YYYY
 ];
 
 function isTemporalField(values: unknown[]): boolean {
   const stringValues = values.filter((v): v is string => typeof v === 'string');
+
+  // Temporal fields must be strings (not numbers that look like years)
   if (stringValues.length < values.length * 0.8) return false;
 
-  const dateMatches = stringValues.filter(
-    (v) => DATE_PATTERNS.some((pattern) => pattern.test(v)) || !isNaN(Date.parse(v))
-  );
+  const dateMatches = stringValues.filter((v) => {
+    // STRICT: Only match explicit date patterns, no Date.parse()
+    return DATE_PATTERNS.some((pattern) => pattern.test(v));
+  });
 
   return dateMatches.length >= stringValues.length * 0.8;
 }
