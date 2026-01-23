@@ -66,4 +66,26 @@ describe('fieldDetection', () => {
       expect(detectFieldType(values)).toBe('nominal');
     });
   });
+
+  describe('detectFieldType - quantitative', () => {
+    it('should detect continuous measurements as quantitative', () => {
+      const values = [12.5, 18.3, 22.7, 15.9, 20.1];
+      expect(detectFieldType(values)).toBe('quantitative');
+    });
+
+    it('should detect sales amounts as quantitative', () => {
+      const values = [1523.45, 2847.22, 1032.88, 4521.00];
+      expect(detectFieldType(values)).toBe('quantitative');
+    });
+
+    it('should detect large range integers as quantitative', () => {
+      const values = [100, 500, 1200, 3400, 8900];
+      expect(detectFieldType(values)).toBe('quantitative');
+    });
+
+    it('should handle high cardinality with varied values', () => {
+      const values = Array.from({ length: 50 }, (_, i) => i * 7.3 + Math.random() * 10);
+      expect(detectFieldType(values)).toBe('quantitative');
+    });
+  });
 });
