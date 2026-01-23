@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectFieldType, detectAllFields } from '../fieldDetection';
+import { detectFieldType } from '../fieldDetection';
 
 describe('fieldDetection', () => {
   describe('detectFieldType', () => {
