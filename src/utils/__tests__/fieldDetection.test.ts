@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectFieldType } from '../fieldDetection';
+import { detectFieldType, detectAllFields } from '../fieldDetection';
 
 describe('fieldDetection', () => {
   describe('detectFieldType', () => {
@@ -134,6 +134,25 @@ describe('fieldDetection', () => {
       const values = Array.from({ length: 10000 }, (_, i) => i);
       const result = detectFieldType(values);
       expect(['quantitative', 'nominal']).toContain(result);
+    });
+  });
+
+  describe('detectAllFields - integration', () => {
+    it('should correctly classify a realistic dataset', () => {
+      const data = [
+        { customer_id: 1001, order_date: '2023-01-15', amount: 125.50, status: 'Completed', rating: 5 },
+        { customer_id: 1002, order_date: '2023-01-16', amount: 89.99, status: 'Pending', rating: 4 },
+        { customer_id: 1003, order_date: '2023-01-17', amount: 210.00, status: 'Completed', rating: 5 },
+        { customer_id: 1004, order_date: '2023-01-18', amount: 45.25, status: 'Cancelled', rating: 2 },
+      ];
+
+      const fields = detectAllFields(data);
+
+      expect(fields.find(f => f.name === 'customer_id')?.type).toBe('nominal');
+      expect(fields.find(f => f.name === 'order_date')?.type).toBe('temporal');
+      expect(fields.find(f => f.name === 'amount')?.type).toBe('quantitative');
+      expect(fields.find(f => f.name === 'status')?.type).toBe('nominal');
+      expect(fields.find(f => f.name === 'rating')?.type).toBe('ordinal');
     });
   });
 });
